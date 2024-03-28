@@ -5,14 +5,8 @@ Card::Card(Suit suit, std::optional<Face> face, unsigned char value)
 {
 }
 
-unsigned char Card::getValue() {
-  return value;
-}
+unsigned char Card::getValue() { return value; }
 
-Suit Card::getSuit() {
-  return suit;
-}
+Suit Card::getSuit() { return suit; }
 
-std::optional<Face> Card::getFace() {
-  return face;
-}
+std::optional<Face> Card::getFace() { return face; }

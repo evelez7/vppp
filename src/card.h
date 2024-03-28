@@ -1,7 +1,7 @@
 #ifndef EV_CARD_HPP
 #define EV_CARD_HPP
-#include <optional>
 #include <QSvgWidget>
+#include <optional>
 #include <string>
 enum Face
 {
@@ -18,7 +18,7 @@ enum class Suit
   Spades = 4
 };
 
-class Card 
+class Card
 {
   Suit suit;
   std::optional<Face> face;
@@ -30,6 +30,5 @@ public:
   unsigned char getValue();
   Suit getSuit();
   std::optional<Face> getFace();
-
 };
 #endif // !EV_CARD_HPP

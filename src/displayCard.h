@@ -11,23 +11,26 @@ class DisplayCard : public QSvgWidget
   Card card;
   bool initialized;
   bool selected;
-    int row, col;
+  int row, col;
 
 public:
   DisplayCard() = default;
-  void setCard(Card card) { this->card = card; initialized = true; }
+  void setCard(Card card)
+  {
+    this->card = card;
+    initialized = true;
+  }
   Card getCard() { return card; }
-  void setPos(int x, int y) {
-      row = x;
-      col = y;
-    }
-  bool isSelected()
-{
-      return selected;
-    }
+  void setPos(int x, int y)
+  {
+    row = x;
+    col = y;
+  }
+  bool isSelected() { return selected; }
   void mousePressEvent(QMouseEvent *event) override
   {
-    if (!initialized) return;
+    if (!initialized)
+      return;
     if (selected)
     {
       selected = false;
@@ -42,8 +45,8 @@ public:
     }
   }
 
-  signals:
-    void clickedCardEnable(int, int);
-    void clickedCardDisable(int, int);
+signals:
+  void clickedCardEnable(int, int);
+  void clickedCardDisable(int, int);
 };
 #endif // DISPLAYCARD_H

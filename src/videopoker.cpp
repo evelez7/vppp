@@ -1,12 +1,12 @@
 #include "videopoker.h"
 #include "./ui_videopoker.h"
-#include "shuffle.h"
 #include "displayCard.h"
+#include "shuffle.h"
 #include <QDebug>
+#include <QLabel>
 #include <QSvgWidget>
 #include <iostream>
 #include <qboxlayout.h>
-#include <QLabel>
 #include <qnamespace.h>
 #include <qpushbutton.h>
 #include <qsvgwidget.h>
@@ -46,11 +46,13 @@ VideoPoker::VideoPoker(QWidget *parent)
   QVBoxLayout *vbox = new QVBoxLayout(this->centralWidget());
   handBox = new QGridLayout();
   vbox->addLayout(handBox);
-  for (int i=0; i<5; ++i)
+  for (int i = 0; i < 5; ++i)
   {
     auto *card = new DisplayCard();
-    connect(card, &DisplayCard::clickedCardEnable, this, &VideoPoker::cardSelectedEnable);
-    connect(card, &DisplayCard::clickedCardDisable, this, &VideoPoker::cardSelectedDisable);
+    connect(card, &DisplayCard::clickedCardEnable, this,
+            &VideoPoker::cardSelectedEnable);
+    connect(card, &DisplayCard::clickedCardDisable, this,
+            &VideoPoker::cardSelectedDisable);
     card->setMaximumSize(QSize(400, 400));
     card->load(QString(":/assets/back.svg"));
     handBox->addWidget(card, 1, i);
@@ -59,8 +61,10 @@ VideoPoker::VideoPoker(QWidget *parent)
   }
 
   QPushButton *dealButton = new QPushButton(QString("Deal"));
-  connect(dealButton, &QAbstractButton::clicked, this, &VideoPoker::dealButtonClicked);
-  connect(this, &VideoPoker::shufflingInterrupted, dealButton, &QAbstractButton::setDisabled);
+  connect(dealButton, &QAbstractButton::clicked, this,
+          &VideoPoker::dealButtonClicked);
+  connect(this, &VideoPoker::shufflingInterrupted, dealButton,
+          &QAbstractButton::setDisabled);
   connect(this, &VideoPoker::readyToPlay, dealButton, &QAbstractButton::hide);
   vbox->addWidget(dealButton);
 
@@ -106,14 +110,15 @@ void VideoPoker::deal()
     }
     else
     {
-      switch (hand.at(i)->getCard().getFace().value()) {
-        case Face::Jack:
+      switch (hand.at(i)->getCard().getFace().value())
+      {
+      case Face::Jack:
         card = "jack";
         break;
-        case Face::Queen:
+      case Face::Queen:
         card = "queen";
         break;
-        case Face::King:
+      case Face::King:
         card = "king";
         break;
       }
@@ -136,28 +141,28 @@ void VideoPoker::deal()
       break;
     }
     QString path(":/assets/" + suit + "_" + card + ".svg");
-    static_cast<DisplayCard *>(handBox->itemAt(i)->widget())
-        ->load(path);
+    static_cast<DisplayCard *>(handBox->itemAt(i)->widget())->load(path);
   }
 }
 
-void VideoPoker::draw() 
+void VideoPoker::draw()
 {
-  for (unsigned char i = 0; i<hand.size(); ++i)
+  for (unsigned char i = 0; i < hand.size(); ++i)
   {
     if (!hand.at(i)->isSelected())
     {
-
     }
   }
 }
 
-void VideoPoker::cardSelectedEnable(int row, int col) {
-  handBox->addWidget(new QLabel("Keep"), row-1, col);
+void VideoPoker::cardSelectedEnable(int row, int col)
+{
+  handBox->addWidget(new QLabel("Keep"), row - 1, col);
 }
 
-void VideoPoker::cardSelectedDisable(int row, int col) {
-  delete handBox->itemAtPosition(row-1, col)->widget();
+void VideoPoker::cardSelectedDisable(int row, int col)
+{
+  delete handBox->itemAtPosition(row - 1, col)->widget();
 }
 
 void VideoPoker::shuffleError(QString error) { qDebug() << error; }
