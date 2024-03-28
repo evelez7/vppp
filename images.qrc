@@ -1,0 +1,57 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>assets/back.svg</file>
+    <file>assets/clubs_ace.svg</file>
+    <file>assets/clubs_2.svg</file>
+    <file>assets/clubs_3.svg</file>
+    <file>assets/clubs_4.svg</file>
+    <file>assets/clubs_5.svg</file>
+    <file>assets/clubs_6.svg</file>
+    <file>assets/clubs_7.svg</file>
+    <file>assets/clubs_8.svg</file>
+    <file>assets/clubs_9.svg</file>
+    <file>assets/clubs_10.svg</file>
+    <file>assets/clubs_jack.svg</file>
+    <file>assets/clubs_queen.svg</file>
+    <file>assets/clubs_king.svg</file>
+    <file>assets/diamonds_ace.svg</file>
+    <file>assets/diamonds_2.svg</file>
+    <file>assets/diamonds_3.svg</file>
+    <file>assets/diamonds_4.svg</file>
+    <file>assets/diamonds_5.svg</file>
+    <file>assets/diamonds_6.svg</file>
+    <file>assets/diamonds_7.svg</file>
+    <file>assets/diamonds_8.svg</file>
+    <file>assets/diamonds_9.svg</file>
+    <file>assets/diamonds_10.svg</file>
+    <file>assets/diamonds_jack.svg</file>
+    <file>assets/diamonds_queen.svg</file>
+    <file>assets/diamonds_king.svg</file>
+    <file>assets/hearts_ace.svg</file>
+    <file>assets/hearts_2.svg</file>
+    <file>assets/hearts_3.svg</file>
+    <file>assets/hearts_4.svg</file>
+    <file>assets/hearts_5.svg</file>
+    <file>assets/hearts_6.svg</file>
+    <file>assets/hearts_7.svg</file>
+    <file>assets/hearts_8.svg</file>
+    <file>assets/hearts_9.svg</file>
+    <file>assets/hearts_10.svg</file>
+    <file>assets/hearts_jack.svg</file>
+    <file>assets/hearts_queen.svg</file>
+    <file>assets/hearts_king.svg</file>
+    <file>assets/spades_ace.svg</file>
+    <file>assets/spades_2.svg</file>
+    <file>assets/spades_3.svg</file>
+    <file>assets/spades_4.svg</file>
+    <file>assets/spades_5.svg</file>
+    <file>assets/spades_6.svg</file>
+    <file>assets/spades_7.svg</file>
+    <file>assets/spades_8.svg</file>
+    <file>assets/spades_9.svg</file>
+    <file>assets/spades_10.svg</file>
+    <file>assets/spades_jack.svg</file>
+    <file>assets/spades_queen.svg</file>
+    <file>assets/spades_king.svg</file>
+</qresource>
+</RCC>
