@@ -35,18 +35,36 @@ public:
     {
       selected = false;
       this->setStyleSheet("");
-      emit clickedCardDisable(row, col);
+      emit cardSelectedDisable(row, col);
     }
     else
     {
       selected = true;
       this->setStyleSheet("border: 1000px solid blue");
-      emit clickedCardEnable(row, col);
+      emit cardSelectedEnable(row, col);
     }
   }
 
+  void select()
+  {
+    if (selected)
+      selected = false;
+    else
+      selected = true;
+  }
+
+  bool isInitialized() { return initialized; }
+
+  void initialize()
+  {
+    if (initialized)
+      initialized = false;
+    else
+      initialized = true;
+  }
+
 signals:
-  void clickedCardEnable(int, int);
-  void clickedCardDisable(int, int);
+  void cardSelectedEnable(int, int);
+  void cardSelectedDisable(int, int);
 };
 #endif // DISPLAYCARD_H

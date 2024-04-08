@@ -4,6 +4,7 @@
 #include "displayCard.h"
 #include "games.h"
 #include <QMainWindow>
+#include <QPushButton>
 #include <QString>
 #include <QThread>
 #include <qboxlayout.h>
@@ -19,14 +20,25 @@ class VideoPoker : public QMainWindow
 {
   Q_OBJECT
   Ui::VideoPoker *ui;
+
+  // the box that holds the hand and "Keep" text
   QGridLayout *handBox;
   std::array<DisplayCard *, 5> hand;
+
+  // put cards back in deck after draw
+  std::vector<Card> discardedCards;
+
   // multiple decks to account for ultimate x
   std::vector<std::vector<Card>> decks;
   QThread *shuffler;
+
+  // the current game being played, i.e. JoB, bonus
   Games gameType;
+  QPushButton *playButton;
 
   void startShuffling();
+  void pullCards();
+  void clearKeepLabels();
 
 public:
   VideoPoker(QWidget *parent = nullptr);
@@ -34,9 +46,10 @@ public:
 
 public slots:
   void dealButtonClicked();
-  void shufflerFinished(std::vector<std::vector<Card>> decks);
+  void finishedShuffling(std::vector<std::vector<Card>> decks);
   void shuffleError(QString error);
   void deal();
+  void draw();
   void cardSelectedEnable(int row, int col);
   void cardSelectedDisable(int row, int col);
 
