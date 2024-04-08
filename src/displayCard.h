@@ -48,9 +48,15 @@ public:
   void select()
   {
     if (selected)
+    {
       selected = false;
+      this->setStyleSheet("");
+    }
     else
+    {
       selected = true;
+      this->setStyleSheet("border: 1000px solid blue");
+    }
   }
 
   bool isInitialized() { return initialized; }

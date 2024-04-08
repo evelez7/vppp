@@ -83,13 +83,15 @@ void VideoPoker::dealButtonClicked()
   playButton->setDisabled(true);
   if (playButton->text() == QString("Deal"))
   {
+    toggleHand(false);
+    clearKeepLabels();
     // emit shufflingInterrupted(true);
     qDebug() << "Requested shuffle interruption";
     shuffler->requestInterruption();
   }
   else if (playButton->text() == QString("Draw"))
   {
-    clearKeepLabels();
+    toggleHand(true);
     draw();
     for (unsigned char i = 0; i < discardedCards.size(); ++i)
       decks.at(0).push_back(std::move(discardedCards.at(i)));
@@ -157,12 +159,12 @@ void VideoPoker::startShuffling()
   QObject::connect(shuffleTask, &Shuffle::error, this,
                    &VideoPoker::shuffleError);
   QObject::connect(shuffler, &QThread::started, shuffleTask, &Shuffle::run);
-  QObject::connect(shuffleTask, &Shuffle::finishedShuffling, shuffler,
-                   &QThread::quit);
-  QObject::connect(shuffleTask, &Shuffle::finishedShuffling, shuffleTask,
-                   &Shuffle::deleteLater);
-  QObject::connect(shuffler, &QThread::finished, shuffler,
-                   &QThread::deleteLater);
+  // QObject::connect(shuffleTask, &Shuffle::finishedShuffling, shuffler,
+  //                  &QThread::quit);
+  // QObject::connect(shuffleTask, &Shuffle::finishedShuffling, shuffleTask,
+  //                  &Shuffle::deleteLater);
+  // QObject::connect(shuffler, &QThread::finished, shuffler,
+  //                  &QThread::deleteLater);
   shuffler->start();
 }
 
@@ -223,4 +225,9 @@ void VideoPoker::pullCards()
     QString path(":/assets/" + suit + "_" + card + ".svg");
     static_cast<DisplayCard *>(handBox->itemAt(i)->widget())->load(path);
   }
+}
+
+void VideoPoker::toggleHand(bool disable) {
+  for (unsigned char i=0; i<hand.size(); ++i)
+    hand.at(i)->setDisabled(disable);
 }
