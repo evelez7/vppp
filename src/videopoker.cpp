@@ -5,13 +5,10 @@
 #include <QDebug>
 #include <QLabel>
 #include <QSvgWidget>
-#include <cstddef>
-#include <iostream>
 #include <qboxlayout.h>
 #include <qnamespace.h>
 #include <qpushbutton.h>
 #include <qsvgwidget.h>
-#include <random>
 
 // No jokers
 std::vector<Card> createStandardDeck()
@@ -36,11 +33,27 @@ std::vector<Card> createStandardDeck()
 
 VideoPoker::VideoPoker(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::VideoPoker),
-      gameType(Games::JACKS_OR_BETTER), shuffler(new QThread())
+      gameType(Games::JACKS_OR_BETTER), shuffler(new QThread()) 
 {
   // allow for passing back from the shuffling thread
   qRegisterMetaType<std::vector<std::vector<Card>>>(
       "std::vector<std::vector<Card>>");
+
+  decks.push_back(createStandardDeck());
+  task = new Shuffle(decks);
+  QObject::connect(task, &Shuffle::finishedShuffling, this,
+                   &VideoPoker::finishedShuffling);
+  QObject::connect(task, &Shuffle::error, this,
+                   &VideoPoker::shuffleError);
+  QObject::connect(shuffler, &QThread::started, task, &Shuffle::run);
+  QObject::connect(task, &Shuffle::finishedShuffling, shuffler,
+                   &QThread::quit);
+  // QObject::connect(shuffleTask, &Shuffle::finishedShuffling, shuffleTask,
+  //                  &Shuffle::deleteLater);
+  // QObject::connect(shuffler, &QThread::finished, shuffler,
+  //                  &QThread::deleteLater);
+  task->moveToThread(shuffler);
+  shuffler->start();
   ui->setupUi(this);
 
   Q_INIT_RESOURCE(images);
@@ -64,12 +77,7 @@ VideoPoker::VideoPoker(QWidget *parent)
   playButton = new QPushButton(QString("Deal"));
   connect(playButton, &QAbstractButton::clicked, this,
           &VideoPoker::dealButtonClicked);
-  // connect(this, &VideoPoker::shufflingInterrupted, playButton,
-  //         &QAbstractButton::setDisabled);
   vbox->addWidget(playButton);
-
-  decks.push_back(createStandardDeck());
-  startShuffling();
 }
 
 VideoPoker::~VideoPoker()
@@ -85,7 +93,6 @@ void VideoPoker::dealButtonClicked()
   {
     toggleHand(false);
     clearKeepLabels();
-    // emit shufflingInterrupted(true);
     qDebug() << "Requested shuffle interruption";
     shuffler->requestInterruption();
   }
@@ -102,8 +109,7 @@ void VideoPoker::dealButtonClicked()
       if (hand.at(i)->isSelected())
         hand.at(i)->select();
     }
-    shuffler = new QThread();
-    startShuffling();
+    shuffler->start();
     playButton->setText(QString("Deal"));
     playButton->setEnabled(true);
   }
@@ -114,6 +120,8 @@ void VideoPoker::finishedShuffling(std::vector<std::vector<Card>> decks)
   this->decks = decks;
   qDebug() << "Received decks";
   deal();
+  playButton->setText(QString("Draw"));
+  playButton->setEnabled(true);
 }
 
 void VideoPoker::deal()
@@ -121,8 +129,6 @@ void VideoPoker::deal()
   for (unsigned char i = 0; i < hand.size(); ++i)
     hand.at(i)->load(QString(":/assets/back.svg"));
   pullCards();
-  playButton->setText(QString("Draw"));
-  playButton->setEnabled(true);
 }
 
 void VideoPoker::draw() { pullCards(); }
@@ -149,24 +155,6 @@ void VideoPoker::cardSelectedDisable(int row, int col)
 }
 
 void VideoPoker::shuffleError(QString error) { qDebug() << error; }
-
-void VideoPoker::startShuffling()
-{
-  Shuffle *shuffleTask = new Shuffle(decks);
-  shuffleTask->moveToThread(shuffler);
-  QObject::connect(shuffleTask, &Shuffle::finishedShuffling, this,
-                   &VideoPoker::finishedShuffling);
-  QObject::connect(shuffleTask, &Shuffle::error, this,
-                   &VideoPoker::shuffleError);
-  QObject::connect(shuffler, &QThread::started, shuffleTask, &Shuffle::run);
-  // QObject::connect(shuffleTask, &Shuffle::finishedShuffling, shuffler,
-  //                  &QThread::quit);
-  // QObject::connect(shuffleTask, &Shuffle::finishedShuffling, shuffleTask,
-  //                  &Shuffle::deleteLater);
-  // QObject::connect(shuffler, &QThread::finished, shuffler,
-  //                  &QThread::deleteLater);
-  shuffler->start();
-}
 
 void VideoPoker::pullCards()
 {

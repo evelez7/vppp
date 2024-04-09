@@ -3,6 +3,7 @@
 
 #include "displayCard.h"
 #include "games.h"
+#include "shuffle.h"
 #include <QMainWindow>
 #include <QPushButton>
 #include <QString>
@@ -30,7 +31,10 @@ class VideoPoker : public QMainWindow
 
   // multiple decks to account for ultimate x
   std::vector<std::vector<Card>> decks;
+  
   QThread *shuffler;
+  
+  Shuffle *task;
 
   // the current game being played, i.e. JoB, bonus
   Games gameType;

@@ -8,21 +8,22 @@
 #include <QString>
 #include <QThread>
 #include <algorithm>
-#include <iostream>
 #include <random>
 #include <vector>
 
 class Shuffle : public QObject
 {
   Q_OBJECT
+  // keep a local copy of decks to not worry about reinserting drawn cards
   std::vector<std::vector<Card>> decks;
-  QMutex mut;
+  std::random_device r;
+  std::mt19937 mt;
+  QMutex mutex;
 
 public:
   void run()
   {
-    std::random_device r;
-    std::mt19937 mt(r());
+    QMutexLocker locker(&mutex);
     bool end = false;
     while (!end)
     {
@@ -32,10 +33,10 @@ public:
       for (int i = 0; i < decks.size(); ++i)
         std::shuffle(decks.at(i).begin(), decks.at(i).end(), mt);
     }
-    emit finishedShuffling(std::move(decks));
+    emit finishedShuffling(decks);
   }
 
-  Shuffle(std::vector<std::vector<Card>> decks) : decks(decks) {}
+  Shuffle(std::vector<std::vector<Card>> decks) : decks(decks), mt(r()) {}
 public slots:
   void deleteLater() {}
 signals:
