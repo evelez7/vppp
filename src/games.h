@@ -4,7 +4,8 @@
 enum class Games
 {
   JACKS_OR_BETTER,
-  TEN_HAND
+  TEN_HAND,
+  ANALYSIS
 };
 
 #endif // GAMES_H

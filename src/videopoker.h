@@ -47,6 +47,9 @@ class VideoPoker : public QMainWindow
   // enable or disable displayed cards in hand
   void toggleHand(bool disable);
 
+  // check the hand for a win
+  void checkHand();
+
 public:
   VideoPoker(QWidget *parent = nullptr);
   ~VideoPoker();

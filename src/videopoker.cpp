@@ -1,15 +1,19 @@
 #include "videopoker.h"
 #include "./ui_videopoker.h"
+#include "card.h"
 #include "displayCard.h"
 #include "shuffle.h"
 #include <QDebug>
 #include <QLabel>
 #include <QSvgWidget>
+#include <map>
 #include <qboxlayout.h>
 #include <qnamespace.h>
 #include <qpushbutton.h>
 #include <qsvgwidget.h>
 
+namespace
+{
 // No jokers
 std::vector<Card> createStandardDeck()
 {
@@ -30,6 +34,49 @@ std::vector<Card> createStandardDeck()
 
   return deck;
 }
+
+QString getSuitString(Card card)
+{
+  switch (card.getSuit())
+  {
+  case Suit::Clubs:
+    return "clubs";
+  case Suit::Diamonds:
+    return "diamonds";
+  case Suit::Hearts:
+    return "hearts";
+  case Suit::Spades:
+    return "spades";
+  case Suit::EMPTY:
+    // this is really bad?
+    return NULL;
+  }
+}
+
+QString getFaceString(Card card)
+{
+  if (card.getFace())
+  {
+    if (card.getValue() == 11)
+      return "ace";
+    else
+      return QString::number(card.getValue());
+  }
+  else
+  {
+    switch (card.getFace().value())
+    {
+    case Face::Jack:
+      return "jack";
+    case Face::Queen:
+      return "queen";
+      break;
+    case Face::King:
+      return "king";
+    }
+  }
+}
+} // namespace
 
 VideoPoker::VideoPoker(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::VideoPoker),
@@ -100,6 +147,8 @@ void VideoPoker::dealButtonClicked()
   {
     toggleHand(true);
     draw();
+    checkHand();
+
     for (unsigned char i = 0; i < discardedCards.size(); ++i)
       decks.at(0).push_back(std::move(discardedCards.at(i)));
     discardedCards.clear();
@@ -109,6 +158,7 @@ void VideoPoker::dealButtonClicked()
       if (hand.at(i)->isSelected())
         hand.at(i)->select();
     }
+
     shuffler->start();
     playButton->setText(QString("Deal"));
     playButton->setEnabled(true);
@@ -170,52 +220,63 @@ void VideoPoker::pullCards()
     hand.at(i)->setCard(decks.at(0).back());
     decks.at(0).pop_back();
 
-    QString card;
-    if (!hand.at(i)->getCard().getFace())
-    {
-      if (hand.at(i)->getCard().getValue() == 11)
-        card = "ace";
-      else
-        card = QString::number(hand.at(i)->getCard().getValue());
-    }
-    else
-    {
-      switch (hand.at(i)->getCard().getFace().value())
-      {
-      case Face::Jack:
-        card = "jack";
-        break;
-      case Face::Queen:
-        card = "queen";
-        break;
-      case Face::King:
-        card = "king";
-        break;
-      }
-    }
-
-    QString suit;
-    switch (hand.at(i)->getCard().getSuit())
-    {
-    case Suit::Clubs:
-      suit = "clubs";
-      break;
-    case Suit::Diamonds:
-      suit = "diamonds";
-      break;
-    case Suit::Hearts:
-      suit = "hearts";
-      break;
-    case Suit::Spades:
-      suit = "spades";
-      break;
-    }
+    QString card = getFaceString(hand.at(i)->getCard());
+    QString suit = getSuitString(hand.at(i)->getCard());
     QString path(":/assets/" + suit + "_" + card + ".svg");
     static_cast<DisplayCard *>(handBox->itemAt(i)->widget())->load(path);
   }
 }
 
-void VideoPoker::toggleHand(bool disable) {
-  for (unsigned char i=0; i<hand.size(); ++i)
+void VideoPoker::toggleHand(bool disable)
+{
+  for (unsigned char i = 0; i < hand.size(); ++i)
     hand.at(i)->setDisabled(disable);
+}
+
+void VideoPoker::checkHand()
+{
+  unsigned char flush;
+  Suit currentSuit = Suit::EMPTY;
+  std::map<QString, unsigned char> count;
+  Card lowCard(Face::Ace), highCard(Face::Two);
+  for (auto *displayCard : hand)
+  {
+    auto currentCard = displayCard->getCard();
+    if (currentCard.getFace() > highCard)
+      highCard = *currentCard.getFace();
+
+    if (currentCard.getFace() < lowCard)
+      lowCard = *currentCard.getFace();
+
+    if (currentCard.getSuit() == currentSuit)
+      flush++;
+    if (currentSuit == Suit::EMPTY)
+      currentSuit = currentCard.getSuit();
+    QString qualifiedCard(getFaceString(currentCard) +
+                          getSuitString(currentCard));
+
+    if (auto it = count.find(qualifiedCard); it != count.end())
+      count.insert({qualifiedCard, static_cast<unsigned char>(1)});
+    else
+      *it++;
+  }
+
+  bool hasFlush = false;
+  if (flush == 5)
+    hasFlush = true;
+
+  bool pair = false, threeOfAKind = false, fourOfAKind = false;
+  for (auto it = count.begin(); it != count.end(); ++it)
+  {
+    if (it->second == 2)
+      pair = true;
+    else if (it->second == 3)
+      threeOfAKind = true;
+    else if (it->second == 4)
+      fourOfAKind = true;
+  }
+
+  bool fullHouse = false;
+  if (pair && threeOfAKind)
+    fullHouse = true;
 }
