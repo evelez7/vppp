@@ -6,6 +6,8 @@
 #include <QDebug>
 #include <QLabel>
 #include <QSvgWidget>
+#include <algorithm>
+#include <array>
 #include <map>
 #include <qboxlayout.h>
 #include <qnamespace.h>
@@ -233,19 +235,22 @@ void VideoPoker::toggleHand(bool disable)
     hand.at(i)->setDisabled(disable);
 }
 
-void VideoPoker::checkHand()
+Hand VideoPoker::checkHand()
 {
   unsigned char flush;
   Suit currentSuit = Suit::EMPTY;
   std::map<QString, unsigned char> count;
   Card lowCard(Face::Ace), highCard(Face::Two);
+  std::vector<Card> handCards;
+  handCards.reserve(5);
   for (auto *displayCard : hand)
   {
     auto currentCard = displayCard->getCard();
-    if (currentCard.getFace() > highCard)
+    handCards.push_back(currentCard);
+    if (currentCard > highCard)
       highCard = *currentCard.getFace();
 
-    if (currentCard.getFace() < lowCard)
+    if (currentCard < lowCard)
       lowCard = *currentCard.getFace();
 
     if (currentCard.getSuit() == currentSuit)
@@ -261,22 +266,57 @@ void VideoPoker::checkHand()
       *it++;
   }
 
+  bool straight = true;
+  if (highCard - lowCard == 4)
+  {
+    std::sort(handCards.begin(), handCards.end(),
+              [](Card a, Card b) { return a < b; });
+    for (unsigned char i = 1; i < 5; ++i)
+    {
+      if (handCards.at(i - 1) + 1 != handCards.at(i).getValue())
+        straight = false;
+    }
+  }
+
   bool hasFlush = false;
   if (flush == 5)
     hasFlush = true;
 
-  bool pair = false, threeOfAKind = false, fourOfAKind = false;
+  if (straight && hasFlush)
+  {
+    if (lowCard == Card(Face::Ten) && highCard == Card(Face::Ace))
+      return Hand::RoyalFlush;
+    return Hand::StraightFlush;
+  }
+  else if (straight)
+    return Hand::Straight;
+  else if (hasFlush)
+    return Hand::Flush;
+
+  bool pair = false, twoPair = false, threeOfAKind = false, fourOfAKind = false;
   for (auto it = count.begin(); it != count.end(); ++it)
   {
     if (it->second == 2)
-      pair = true;
+    {
+      if (pair)
+        twoPair = true;
+      else
+        pair = true;
+    }
     else if (it->second == 3)
       threeOfAKind = true;
     else if (it->second == 4)
-      fourOfAKind = true;
+      return Hand::FourOfAKind;
   }
 
   bool fullHouse = false;
   if (pair && threeOfAKind)
-    fullHouse = true;
+    return Hand::FullHouse;
+  else if (threeOfAKind)
+    return Hand::ThreeOfAKind;
+  else if (twoPair)
+    return Hand::TwoPair;
+  else if (pair)
+    return Hand::Pair;
+  return Hand::HighCard;
 }

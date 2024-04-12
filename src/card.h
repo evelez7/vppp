@@ -42,5 +42,10 @@ public:
   unsigned char getValue();
   Suit getSuit();
   std::optional<Face> getFace();
+  bool operator<(const Card &otherCard);
+  bool operator>(const Card &otherCard);
+  bool operator==(const Card &otherCard);
+  unsigned char operator-(Card &otherCard);
+  unsigned char operator+(unsigned char operand);
 };
 #endif // !EV_CARD_HPP

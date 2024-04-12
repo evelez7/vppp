@@ -17,6 +17,20 @@ class VideoPoker;
 }
 QT_END_NAMESPACE
 
+enum Hand : unsigned char
+{
+  HighCard = 0,
+  Pair = 1,
+  TwoPair = 2,
+  ThreeOfAKind = 3,
+  Straight = 4,
+  Flush = 5,
+  FullHouse = 6,
+  FourOfAKind = 7,
+  StraightFlush = 8,
+  RoyalFlush = 9
+};
+
 class VideoPoker : public QMainWindow
 {
   Q_OBJECT
@@ -48,7 +62,7 @@ class VideoPoker : public QMainWindow
   void toggleHand(bool disable);
 
   // check the hand for a win
-  void checkHand();
+  Hand checkHand();
 
 public:
   VideoPoker(QWidget *parent = nullptr);
