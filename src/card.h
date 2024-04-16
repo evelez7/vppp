@@ -2,16 +2,27 @@
 #define EV_CARD_HPP
 #include <QSvgWidget>
 #include <optional>
-#include <string>
-enum Face
+
+enum class Face : unsigned int
 {
-  Jack,
-  Queen,
-  King
+  Two = 2,
+  Three = 3,
+  Four = 4,
+  Five = 5,
+  Six = 6,
+  Seven = 7,
+  Eight = 8,
+  Nine = 9,
+  Ten = 10,
+  Jack = 11,
+  Queen = 12,
+  King = 13,
+  Ace = 14
 };
 
 enum class Suit
 {
+  EMPTY,
   Clubs = 1,
   Diamonds = 2,
   Hearts = 3,
@@ -21,14 +32,20 @@ enum class Suit
 class Card
 {
   Suit suit;
-  std::optional<Face> face;
+  Face face;
   unsigned char value;
 
 public:
   Card() = default;
-  Card(Suit suit, std::optional<Face> face, unsigned char value);
+  Card(Suit suit, std::optional<Face> optFace, unsigned char value);
+  Card(Face face);
   unsigned char getValue();
   Suit getSuit();
-  std::optional<Face> getFace();
+  Face getFace();
+  bool operator<(const Card &otherCard);
+  bool operator>(const Card &otherCard);
+  bool operator==(const Card &otherCard) const;
+  unsigned char operator-(Card &otherCard);
+  unsigned char operator+(unsigned char operand);
 };
 #endif // !EV_CARD_HPP

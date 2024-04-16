@@ -4,11 +4,12 @@
 #include "displayCard.h"
 #include "games.h"
 #include "shuffle.h"
+#include <QBoxLayout>
+#include <QLabel>
 #include <QMainWindow>
 #include <QPushButton>
 #include <QString>
 #include <QThread>
-#include <qboxlayout.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -17,13 +18,33 @@ class VideoPoker;
 }
 QT_END_NAMESPACE
 
+enum Hand : unsigned char
+{
+  HighCard = 0,
+  Pair = 1,
+  TwoPair = 2,
+  ThreeOfAKind = 3,
+  Straight = 4,
+  Flush = 5,
+  FullHouse = 6,
+  FourOfAKind = 7,
+  StraightFlush = 8,
+  RoyalFlush = 9
+};
+
 class VideoPoker : public QMainWindow
 {
   Q_OBJECT
   Ui::VideoPoker *ui;
 
+  // the vertical layout that keeps everything
+  QVBoxLayout *mainLayout;
+
   // the box that holds the hand and "Keep" text
   QGridLayout *handBox;
+
+  QLabel *handLabel;
+
   std::array<DisplayCard *, 5> hand;
 
   // put cards back in deck after draw
@@ -31,9 +52,9 @@ class VideoPoker : public QMainWindow
 
   // multiple decks to account for ultimate x
   std::vector<std::vector<Card>> decks;
-  
+
   QThread *shuffler;
-  
+
   Shuffle *task;
 
   // the current game being played, i.e. JoB, bonus
@@ -43,9 +64,14 @@ class VideoPoker : public QMainWindow
   void startShuffling();
   void pullCards();
   void clearKeepLabels();
-  
+
   // enable or disable displayed cards in hand
   void toggleHand(bool disable);
+
+  // check the hand for a win
+  Hand checkHand();
+
+  void addHandLabel(Hand hand);
 
 public:
   VideoPoker(QWidget *parent = nullptr);

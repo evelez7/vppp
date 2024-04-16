@@ -8,6 +8,7 @@
 #include <QString>
 #include <QThread>
 #include <algorithm>
+#include <chrono>
 #include <random>
 #include <vector>
 
@@ -36,7 +37,12 @@ public:
     emit finishedShuffling(decks);
   }
 
-  Shuffle(std::vector<std::vector<Card>> decks) : decks(decks), mt(r()) {}
+  Shuffle(std::vector<std::vector<Card>> decks)
+      : decks(decks),
+        mt(r() ^
+           std::chrono::high_resolution_clock::now().time_since_epoch().count())
+  {
+  }
 public slots:
   void deleteLater() {}
 signals:
