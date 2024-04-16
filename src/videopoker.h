@@ -8,7 +8,8 @@
 #include <QPushButton>
 #include <QString>
 #include <QThread>
-#include <qboxlayout.h>
+#include <QBoxLayout>
+#include <QLabel>
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -35,9 +36,15 @@ class VideoPoker : public QMainWindow
 {
   Q_OBJECT
   Ui::VideoPoker *ui;
+ 
+  // the vertical layout that keeps everything
+  QVBoxLayout *mainLayout;
 
   // the box that holds the hand and "Keep" text
   QGridLayout *handBox;
+  
+  QLabel* handLabel;
+
   std::array<DisplayCard *, 5> hand;
 
   // put cards back in deck after draw
@@ -63,6 +70,8 @@ class VideoPoker : public QMainWindow
 
   // check the hand for a win
   Hand checkHand();
+  
+  void addHandLabel(Hand hand);
 
 public:
   VideoPoker(QWidget *parent = nullptr);

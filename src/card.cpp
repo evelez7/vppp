@@ -1,10 +1,10 @@
 #include "card.h"
 #include <type_traits>
 
-Card::Card(Suit suit, std::optional<Face> face, unsigned char value)
+Card::Card(Suit suit, std::optional<Face> optFace, unsigned char value)
     : suit(suit), value(value)
 {
-  if (face == std::nullopt)
+  if (optFace == std::nullopt)
     switch (value)
     {
     case 2:
@@ -36,7 +36,7 @@ Card::Card(Suit suit, std::optional<Face> face, unsigned char value)
       break;
     }
   else
-    face = std::move(face.value());
+    face = std::move(optFace.value());
 }
 
 Card::Card(Face face) : face(face), suit(Suit::EMPTY) {}

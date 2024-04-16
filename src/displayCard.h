@@ -17,7 +17,7 @@ public:
   DisplayCard() = default;
   void setCard(Card card)
   {
-    card = card;
+    this->card = card;
     initialized = true;
   }
   Card getCard() { return card; }

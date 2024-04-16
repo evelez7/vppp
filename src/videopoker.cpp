@@ -69,31 +69,23 @@ QString getFaceString(Face face)
   case Face::Jack:
     return QString("jack");
   case Face::Two:
-    return QString("2");
   case Face::Three:
-    return QString("3");
   case Face::Four:
-    return QString("4");
   case Face::Five:
-    return QString("5");
   case Face::Six:
-    return QString("6");
   case Face::Seven:
-    return QString("7");
   case Face::Eight:
-    return QString("8");
   case Face::Nine:
-    return QString("9");
   case Face::Ten:
-    return QString("10");
+    return QString(QString::number(std::to_underlying(face)));
   }
 }
 } // namespace
 
 VideoPoker::VideoPoker(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::VideoPoker),
-      gameType(Games::JACKS_OR_BETTER), shuffler(new QThread()) 
-{
+      gameType(Games::JACKS_OR_BETTER), shuffler(new QThread()),
+      handLabel(new QLabel()) {
   // allow for passing back from the shuffling thread
   qRegisterMetaType<std::vector<std::vector<Card>>>(
       "std::vector<std::vector<Card>>");
@@ -102,11 +94,9 @@ VideoPoker::VideoPoker(QWidget *parent)
   task = new Shuffle(decks);
   QObject::connect(task, &Shuffle::finishedShuffling, this,
                    &VideoPoker::finishedShuffling);
-  QObject::connect(task, &Shuffle::error, this,
-                   &VideoPoker::shuffleError);
+  QObject::connect(task, &Shuffle::error, this, &VideoPoker::shuffleError);
   QObject::connect(shuffler, &QThread::started, task, &Shuffle::run);
-  QObject::connect(task, &Shuffle::finishedShuffling, shuffler,
-                   &QThread::quit);
+  QObject::connect(task, &Shuffle::finishedShuffling, shuffler, &QThread::quit);
   // QObject::connect(shuffleTask, &Shuffle::finishedShuffling, shuffleTask,
   //                  &Shuffle::deleteLater);
   // QObject::connect(shuffler, &QThread::finished, shuffler,
@@ -116,9 +106,10 @@ VideoPoker::VideoPoker(QWidget *parent)
   ui->setupUi(this);
 
   Q_INIT_RESOURCE(images);
-  QVBoxLayout *vbox = new QVBoxLayout(this->centralWidget());
+  mainLayout = new QVBoxLayout(this->centralWidget());
+  mainLayout->addWidget(handLabel);
   handBox = new QGridLayout();
-  vbox->addLayout(handBox);
+  mainLayout->addLayout(handBox);
   for (int i = 0; i < 5; ++i)
   {
     auto *card = new DisplayCard();
@@ -136,7 +127,7 @@ VideoPoker::VideoPoker(QWidget *parent)
   playButton = new QPushButton(QString("Deal"));
   connect(playButton, &QAbstractButton::clicked, this,
           &VideoPoker::dealButtonClicked);
-  vbox->addWidget(playButton);
+  mainLayout->addWidget(playButton);
 }
 
 VideoPoker::~VideoPoker()
@@ -190,13 +181,13 @@ void VideoPoker::deal()
   for (unsigned char i = 0; i < hand.size(); ++i)
     hand.at(i)->load(QString(":/assets/back.svg"));
   pullCards();
-  checkHand();
+  addHandLabel(checkHand());
 }
 
 void VideoPoker::draw()
 {
   pullCards();
-  checkHand();
+  addHandLabel(checkHand());
 }
 
 void VideoPoker::clearKeepLabels()
@@ -267,10 +258,10 @@ Hand VideoPoker::checkHand()
     if (currentCard < lowCard)
       lowCard = currentCard.getFace();
 
-    if (currentCard.getSuit() == currentSuit)
-      flush++;
     if (currentSuit == Suit::EMPTY)
       currentSuit = currentCard.getSuit();
+    else if (currentCard.getSuit() == currentSuit)
+      flush++;
     QString qualifiedCard(getFaceString(currentCard.getFace()) +
                           getSuitString(currentCard.getSuit()));
 
@@ -292,7 +283,8 @@ Hand VideoPoker::checkHand()
         straight = false;
         break;
       }
-  }
+  } else
+    straight = false;
 
   bool hasFlush = false;
   if (flush == 5)
@@ -312,16 +304,14 @@ Hand VideoPoker::checkHand()
   bool pair = false, twoPair = false, threeOfAKind = false, fourOfAKind = false;
   for (auto it = count.begin(); it != count.end(); ++it)
   {
-    if (it->second == 2)
-    {
+    if (it->second == static_cast<unsigned char>(2)) {
       if (pair)
         twoPair = true;
       else
         pair = true;
-    }
-    else if (it->second == 3)
+    } else if (it->second == static_cast<unsigned char>(3))
       threeOfAKind = true;
-    else if (it->second == 4)
+    else if (it->second == static_cast<unsigned char>(4))
       return Hand::FourOfAKind;
   }
 
@@ -335,4 +325,41 @@ Hand VideoPoker::checkHand()
   else if (pair)
     return Hand::Pair;
   return Hand::HighCard;
+}
+
+void VideoPoker::addHandLabel(Hand hand) {
+  QString handString;
+  switch (hand) {
+  case Hand::Pair:
+    handString = "Pair";
+    break;
+  case Hand::TwoPair:
+    handString = "Two Pair";
+    break;
+  case Hand::Flush:
+    handString = "Flush";
+    break;
+  case Hand::FullHouse:
+    handString = "Full House";
+    break;
+  case Hand::FourOfAKind:
+    handString = "Four of a Kind";
+    break;
+  case Hand::HighCard:
+    handString = "High Card";
+    break;
+  case Hand::Straight:
+    handString = "Straight";
+    break;
+  case Hand::StraightFlush:
+    handString = "Straight Flush";
+    break;
+  case Hand::ThreeOfAKind:
+    handString = "Three of a Kind";
+    break;
+  case Hand::RoyalFlush:
+    handString = "Royal Flush";
+    break;
+  }
+  handLabel->setText(handString);
 }

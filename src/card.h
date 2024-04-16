@@ -37,7 +37,7 @@ class Card
 
 public:
   Card() = default;
-  Card(Suit suit, std::optional<Face> face, unsigned char value);
+  Card(Suit suit, std::optional<Face> optFace, unsigned char value);
   Card(Face face);
   unsigned char getValue();
   Suit getSuit();
