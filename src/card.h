@@ -3,7 +3,7 @@
 #include <QSvgWidget>
 #include <optional>
 
-enum class Face : unsigned char
+enum class Face : unsigned int
 {
   Two = 2,
   Three = 3,
@@ -32,7 +32,7 @@ enum class Suit
 class Card
 {
   Suit suit;
-  std::optional<Face> face;
+  Face face;
   unsigned char value;
 
 public:
@@ -41,10 +41,10 @@ public:
   Card(Face face);
   unsigned char getValue();
   Suit getSuit();
-  std::optional<Face> getFace();
+  Face getFace();
   bool operator<(const Card &otherCard);
   bool operator>(const Card &otherCard);
-  bool operator==(const Card &otherCard);
+  bool operator==(const Card &otherCard) const;
   unsigned char operator-(Card &otherCard);
   unsigned char operator+(unsigned char operand);
 };

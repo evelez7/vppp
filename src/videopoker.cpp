@@ -13,6 +13,7 @@
 #include <qnamespace.h>
 #include <qpushbutton.h>
 #include <qsvgwidget.h>
+#include <utility>
 
 namespace
 {
@@ -31,15 +32,15 @@ std::vector<Card> createStandardDeck()
       deck.emplace_back(suit, std::nullopt, j);
     for (unsigned char j = 0; j < faces.size(); ++j)
       deck.emplace_back(suit, faces.at(j), 10);
-    deck.emplace_back(suit, std::nullopt, 11);
+    deck.emplace_back(suit, Face::Ace, 11);
   }
 
   return deck;
 }
 
-QString getSuitString(Card card)
+QString getSuitString(Suit suit)
 {
-  switch (card.getSuit())
+  switch (suit)
   {
   case Suit::Clubs:
     return "clubs";
@@ -55,27 +56,36 @@ QString getSuitString(Card card)
   }
 }
 
-QString getFaceString(Card card)
+QString getFaceString(Face face)
 {
-  if (card.getFace())
+  switch (face)
   {
-    if (card.getValue() == 11)
-      return "ace";
-    else
-      return QString::number(card.getValue());
-  }
-  else
-  {
-    switch (card.getFace().value())
-    {
-    case Face::Jack:
-      return "jack";
-    case Face::Queen:
-      return "queen";
-      break;
-    case Face::King:
-      return "king";
-    }
+  case Face::Ace:
+    return QString("ace");
+  case Face::King:
+    return QString("king");
+  case Face::Queen:
+    return QString("queen");
+  case Face::Jack:
+    return QString("jack");
+  case Face::Two:
+    return QString("2");
+  case Face::Three:
+    return QString("3");
+  case Face::Four:
+    return QString("4");
+  case Face::Five:
+    return QString("5");
+  case Face::Six:
+    return QString("6");
+  case Face::Seven:
+    return QString("7");
+  case Face::Eight:
+    return QString("8");
+  case Face::Nine:
+    return QString("9");
+  case Face::Ten:
+    return QString("10");
   }
 }
 } // namespace
@@ -149,7 +159,6 @@ void VideoPoker::dealButtonClicked()
   {
     toggleHand(true);
     draw();
-    checkHand();
 
     for (unsigned char i = 0; i < discardedCards.size(); ++i)
       decks.at(0).push_back(std::move(discardedCards.at(i)));
@@ -181,9 +190,14 @@ void VideoPoker::deal()
   for (unsigned char i = 0; i < hand.size(); ++i)
     hand.at(i)->load(QString(":/assets/back.svg"));
   pullCards();
+  checkHand();
 }
 
-void VideoPoker::draw() { pullCards(); }
+void VideoPoker::draw()
+{
+  pullCards();
+  checkHand();
+}
 
 void VideoPoker::clearKeepLabels()
 {
@@ -222,8 +236,8 @@ void VideoPoker::pullCards()
     hand.at(i)->setCard(decks.at(0).back());
     decks.at(0).pop_back();
 
-    QString card = getFaceString(hand.at(i)->getCard());
-    QString suit = getSuitString(hand.at(i)->getCard());
+    QString card = getFaceString(hand.at(i)->getCard().getFace());
+    QString suit = getSuitString(hand.at(i)->getCard().getSuit());
     QString path(":/assets/" + suit + "_" + card + ".svg");
     static_cast<DisplayCard *>(handBox->itemAt(i)->widget())->load(path);
   }
@@ -243,27 +257,28 @@ Hand VideoPoker::checkHand()
   Card lowCard(Face::Ace), highCard(Face::Two);
   std::vector<Card> handCards;
   handCards.reserve(5);
-  for (auto *displayCard : hand)
+  for (DisplayCard *displayCard : hand)
   {
     auto currentCard = displayCard->getCard();
     handCards.push_back(currentCard);
     if (currentCard > highCard)
-      highCard = *currentCard.getFace();
+      highCard = currentCard.getFace();
 
     if (currentCard < lowCard)
-      lowCard = *currentCard.getFace();
+      lowCard = currentCard.getFace();
 
     if (currentCard.getSuit() == currentSuit)
       flush++;
     if (currentSuit == Suit::EMPTY)
       currentSuit = currentCard.getSuit();
-    QString qualifiedCard(getFaceString(currentCard) +
-                          getSuitString(currentCard));
+    QString qualifiedCard(getFaceString(currentCard.getFace()) +
+                          getSuitString(currentCard.getSuit()));
 
-    if (auto it = count.find(qualifiedCard); it != count.end())
+    auto it = count.find(qualifiedCard);
+    if (it == count.end())
       count.insert({qualifiedCard, static_cast<unsigned char>(1)});
     else
-      *it++;
+      count.at(qualifiedCard)++;
   }
 
   bool straight = true;
@@ -271,11 +286,12 @@ Hand VideoPoker::checkHand()
   {
     std::sort(handCards.begin(), handCards.end(),
               [](Card a, Card b) { return a < b; });
-    for (unsigned char i = 1; i < 5; ++i)
-    {
+    for (unsigned char i = 1; i < handCards.size(); ++i)
       if (handCards.at(i - 1) + 1 != handCards.at(i).getValue())
+      {
         straight = false;
-    }
+        break;
+      }
   }
 
   bool hasFlush = false;

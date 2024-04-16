@@ -2,7 +2,7 @@
 #include <type_traits>
 
 Card::Card(Suit suit, std::optional<Face> face, unsigned char value)
-    : suit(suit), face(face), value(value)
+    : suit(suit), value(value)
 {
   if (face == std::nullopt)
     switch (value)
@@ -35,18 +35,17 @@ Card::Card(Suit suit, std::optional<Face> face, unsigned char value)
       face = Face::Ten;
       break;
     }
+  else
+    face = std::move(face.value());
 }
 
 Card::Card(Face face) : face(face), suit(Suit::EMPTY) {}
 
-unsigned char Card::getValue()
-{
-  return static_cast<std::underlying_type<Face>::type>(getFace().value());
-}
+unsigned char Card::getValue() { return value; }
 
 Suit Card::getSuit() { return suit; }
 
-std::optional<Face> Card::getFace() { return face; }
+Face Card::getFace() { return face; }
 
 bool Card::operator<(const Card &otherCard)
 {
@@ -62,7 +61,7 @@ bool Card::operator>(const Card &otherCard)
   return false;
 }
 
-bool Card::operator==(const Card &otherCard)
+bool Card::operator==(const Card &otherCard) const
 {
   if (face == otherCard.face)
     return true;
@@ -71,13 +70,11 @@ bool Card::operator==(const Card &otherCard)
 
 unsigned char Card::operator-(Card &otherCard)
 {
-  return static_cast<typename std::underlying_type<Face>::type>(face.value()) -
-         static_cast<typename std::underlying_type<Face>::type>(
-             otherCard.face.value());
+  return static_cast<typename std::underlying_type<Face>::type>(face) -
+         static_cast<typename std::underlying_type<Face>::type>(otherCard.face);
 }
 
 unsigned char Card::operator+(unsigned char operand)
 {
-  return static_cast<typename std::underlying_type<Face>::type>(face.value()) +
-         operand;
+  return static_cast<typename std::underlying_type<Face>::type>(face) + operand;
 }
