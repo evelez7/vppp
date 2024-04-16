@@ -1,5 +1,5 @@
 #include "card.h"
-#include <type_traits>
+#include <utility>
 
 Card::Card(Suit suit, std::optional<Face> optFace, unsigned char value)
     : suit(suit), value(value)
@@ -49,32 +49,31 @@ Face Card::getFace() { return face; }
 
 bool Card::operator<(const Card &otherCard)
 {
-  if (face < otherCard.face)
+  if (std::to_underlying(face) < std::to_underlying(otherCard.face))
     return true;
   return false;
 }
 
 bool Card::operator>(const Card &otherCard)
 {
-  if (face > otherCard.face)
+  if (std::to_underlying(face) > std::to_underlying(otherCard.face))
     return true;
   return false;
 }
 
 bool Card::operator==(const Card &otherCard) const
 {
-  if (face == otherCard.face)
+  if (std::to_underlying(face) == std::to_underlying(otherCard.face))
     return true;
   return false;
 }
 
 unsigned char Card::operator-(Card &otherCard)
 {
-  return static_cast<typename std::underlying_type<Face>::type>(face) -
-         static_cast<typename std::underlying_type<Face>::type>(otherCard.face);
+  return std::to_underlying(face) - std::to_underlying(otherCard.face);
 }
 
 unsigned char Card::operator+(unsigned char operand)
 {
-  return static_cast<typename std::underlying_type<Face>::type>(face) + operand;
+  return std::to_underlying(face) + operand;
 }

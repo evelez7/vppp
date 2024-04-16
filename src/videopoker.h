@@ -4,12 +4,12 @@
 #include "displayCard.h"
 #include "games.h"
 #include "shuffle.h"
+#include <QBoxLayout>
+#include <QLabel>
 #include <QMainWindow>
 #include <QPushButton>
 #include <QString>
 #include <QThread>
-#include <QBoxLayout>
-#include <QLabel>
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -36,14 +36,14 @@ class VideoPoker : public QMainWindow
 {
   Q_OBJECT
   Ui::VideoPoker *ui;
- 
+
   // the vertical layout that keeps everything
   QVBoxLayout *mainLayout;
 
   // the box that holds the hand and "Keep" text
   QGridLayout *handBox;
-  
-  QLabel* handLabel;
+
+  QLabel *handLabel;
 
   std::array<DisplayCard *, 5> hand;
 
@@ -52,9 +52,9 @@ class VideoPoker : public QMainWindow
 
   // multiple decks to account for ultimate x
   std::vector<std::vector<Card>> decks;
-  
+
   QThread *shuffler;
-  
+
   Shuffle *task;
 
   // the current game being played, i.e. JoB, bonus
@@ -64,13 +64,13 @@ class VideoPoker : public QMainWindow
   void startShuffling();
   void pullCards();
   void clearKeepLabels();
-  
+
   // enable or disable displayed cards in hand
   void toggleHand(bool disable);
 
   // check the hand for a win
   Hand checkHand();
-  
+
   void addHandLabel(Hand hand);
 
 public:

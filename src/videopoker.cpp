@@ -38,7 +38,7 @@ std::vector<Card> createStandardDeck()
   return deck;
 }
 
-QString getSuitString(Suit suit)
+std::string getSuitString(Suit suit)
 {
   switch (suit)
   {
@@ -51,23 +51,22 @@ QString getSuitString(Suit suit)
   case Suit::Spades:
     return "spades";
   case Suit::EMPTY:
-    // this is really bad?
-    return NULL;
+    return "";
   }
 }
 
-QString getFaceString(Face face)
+std::string getFaceString(Face face)
 {
   switch (face)
   {
   case Face::Ace:
-    return QString("ace");
+    return "ace";
   case Face::King:
-    return QString("king");
+    return "king";
   case Face::Queen:
-    return QString("queen");
+    return "queen";
   case Face::Jack:
-    return QString("jack");
+    return "jack";
   case Face::Two:
   case Face::Three:
   case Face::Four:
@@ -77,7 +76,7 @@ QString getFaceString(Face face)
   case Face::Eight:
   case Face::Nine:
   case Face::Ten:
-    return QString(QString::number(std::to_underlying(face)));
+    return std::to_string(std::to_underlying(face));
   }
 }
 } // namespace
@@ -85,7 +84,8 @@ QString getFaceString(Face face)
 VideoPoker::VideoPoker(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::VideoPoker),
       gameType(Games::JACKS_OR_BETTER), shuffler(new QThread()),
-      handLabel(new QLabel()) {
+      handLabel(new QLabel())
+{
   // allow for passing back from the shuffling thread
   qRegisterMetaType<std::vector<std::vector<Card>>>(
       "std::vector<std::vector<Card>>");
@@ -227,9 +227,9 @@ void VideoPoker::pullCards()
     hand.at(i)->setCard(decks.at(0).back());
     decks.at(0).pop_back();
 
-    QString card = getFaceString(hand.at(i)->getCard().getFace());
-    QString suit = getSuitString(hand.at(i)->getCard().getSuit());
-    QString path(":/assets/" + suit + "_" + card + ".svg");
+    std::string card = getFaceString(hand.at(i)->getCard().getFace());
+    std::string suit = getSuitString(hand.at(i)->getCard().getSuit());
+    QString path((":/assets/" + suit + "_" + card + ".svg").c_str());
     static_cast<DisplayCard *>(handBox->itemAt(i)->widget())->load(path);
   }
 }
@@ -242,9 +242,9 @@ void VideoPoker::toggleHand(bool disable)
 
 Hand VideoPoker::checkHand()
 {
-  unsigned char flush;
+  unsigned char flush = 0;
   Suit currentSuit = Suit::EMPTY;
-  std::map<QString, unsigned char> count;
+  std::map<std::string, unsigned char> count;
   Card lowCard(Face::Ace), highCard(Face::Two);
   std::vector<Card> handCards;
   handCards.reserve(5);
@@ -257,19 +257,20 @@ Hand VideoPoker::checkHand()
 
     if (currentCard < lowCard)
       lowCard = currentCard.getFace();
-
     if (currentSuit == Suit::EMPTY)
       currentSuit = currentCard.getSuit();
     else if (currentCard.getSuit() == currentSuit)
       flush++;
-    QString qualifiedCard(getFaceString(currentCard.getFace()) +
-                          getSuitString(currentCard.getSuit()));
 
-    auto it = count.find(qualifiedCard);
-    if (it == count.end())
-      count.insert({qualifiedCard, static_cast<unsigned char>(1)});
-    else
+    std::string qualifiedCard(getFaceString(currentCard.getFace()));
+    try
+    {
       count.at(qualifiedCard)++;
+    }
+    catch (std::out_of_range &e)
+    {
+      count.insert({qualifiedCard, 1});
+    }
   }
 
   bool straight = true;
@@ -278,12 +279,13 @@ Hand VideoPoker::checkHand()
     std::sort(handCards.begin(), handCards.end(),
               [](Card a, Card b) { return a < b; });
     for (unsigned char i = 1; i < handCards.size(); ++i)
-      if (handCards.at(i - 1) + 1 != handCards.at(i).getValue())
+      if (handCards.at(i - 1).getValue() + 1 != handCards.at(i).getValue())
       {
         straight = false;
         break;
       }
-  } else
+  }
+  else
     straight = false;
 
   bool hasFlush = false;
@@ -302,16 +304,18 @@ Hand VideoPoker::checkHand()
     return Hand::Flush;
 
   bool pair = false, twoPair = false, threeOfAKind = false, fourOfAKind = false;
-  for (auto it = count.begin(); it != count.end(); ++it)
+  for (const auto &it : count)
   {
-    if (it->second == static_cast<unsigned char>(2)) {
+    if (it.second == static_cast<unsigned char>(2))
+    {
       if (pair)
         twoPair = true;
       else
         pair = true;
-    } else if (it->second == static_cast<unsigned char>(3))
+    }
+    else if (it.second == static_cast<unsigned char>(3))
       threeOfAKind = true;
-    else if (it->second == static_cast<unsigned char>(4))
+    else if (it.second == static_cast<unsigned char>(4))
       return Hand::FourOfAKind;
   }
 
@@ -327,9 +331,11 @@ Hand VideoPoker::checkHand()
   return Hand::HighCard;
 }
 
-void VideoPoker::addHandLabel(Hand hand) {
+void VideoPoker::addHandLabel(Hand hand)
+{
   QString handString;
-  switch (hand) {
+  switch (hand)
+  {
   case Hand::Pair:
     handString = "Pair";
     break;
