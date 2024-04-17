@@ -84,23 +84,21 @@ std::string getFaceString(Face face)
 VideoPoker::VideoPoker(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::VideoPoker),
       gameType(Games::JACKS_OR_BETTER), shuffler(new QThread()),
-      handLabel(new QLabel())
+      handLabel(new QLabel()),
+      mt(std::make_shared<std::mt19937>(std::random_device{}())),
+      decks(std::make_shared<std::vector<std::vector<Card>>>())
 {
-  // allow for passing back from the shuffling thread
+  //  allow for passing back from the shuffling thread
   qRegisterMetaType<std::vector<std::vector<Card>>>(
       "std::vector<std::vector<Card>>");
 
-  decks.push_back(createStandardDeck());
-  task = new Shuffle(decks);
+  decks->push_back(createStandardDeck());
+  task = new Shuffle(decks, mt);
   QObject::connect(task, &Shuffle::finishedShuffling, this,
                    &VideoPoker::finishedShuffling);
   QObject::connect(task, &Shuffle::error, this, &VideoPoker::shuffleError);
   QObject::connect(shuffler, &QThread::started, task, &Shuffle::run);
   QObject::connect(task, &Shuffle::finishedShuffling, shuffler, &QThread::quit);
-  // QObject::connect(shuffleTask, &Shuffle::finishedShuffling, shuffleTask,
-  //                  &Shuffle::deleteLater);
-  // QObject::connect(shuffler, &QThread::finished, shuffler,
-  //                  &QThread::deleteLater);
   task->moveToThread(shuffler);
   shuffler->start();
   ui->setupUi(this);
@@ -143,20 +141,39 @@ void VideoPoker::dealButtonClicked()
   {
     toggleHand(false);
     clearKeepLabels();
-    qDebug() << "Requested shuffle interruption";
     shuffler->requestInterruption();
+    qDebug() << "Requested shuffle interruption after deal";
   }
   else if (playButton->text() == QString("Draw"))
   {
     toggleHand(true);
-    draw();
+    shuffler->requestInterruption();
+    qDebug() << "Requested shuffle interruption after draw";
+  }
+}
 
-    for (unsigned char i = 0; i < discardedCards.size(); ++i)
-      decks.at(0).push_back(std::move(discardedCards.at(i)));
-    discardedCards.clear();
+void VideoPoker::finishedShuffling()
+{
+  if (playButton->text() == QString("Deal"))
+  {
+    shuffler->quit();
+    qDebug() << "Dealing cards";
+    deal();
+    shuffler->start();
+    playButton->setText(QString("Draw"));
+    playButton->setEnabled(true);
+  }
+  else if (playButton->text() == QString("Draw"))
+  {
+    shuffler->quit();
+    qDebug() << "Drawing cards";
+    draw();
+    for (unsigned char i = 0; i < discards.size(); ++i)
+      decks->at(0).push_back(std::move(discards.at(i)));
+    discards.clear();
     for (unsigned char i = 0; i < hand.size(); ++i)
     {
-      decks.at(0).push_back(std::move(hand.at(i)->getCard()));
+      decks->at(0).push_back(std::move(hand.at(i)->getCard()));
       if (hand.at(i)->isSelected())
         hand.at(i)->select();
     }
@@ -165,15 +182,6 @@ void VideoPoker::dealButtonClicked()
     playButton->setText(QString("Deal"));
     playButton->setEnabled(true);
   }
-}
-
-void VideoPoker::finishedShuffling(std::vector<std::vector<Card>> decks)
-{
-  this->decks = decks;
-  qDebug() << "Received decks";
-  deal();
-  playButton->setText(QString("Draw"));
-  playButton->setEnabled(true);
 }
 
 void VideoPoker::deal()
@@ -222,10 +230,10 @@ void VideoPoker::pullCards()
       continue;
     // this card has been dealt and is being discarded for the draw action
     if (hand.at(i)->isInitialized())
-      discardedCards.push_back(std::move(hand.at(i)->getCard()));
+      discards.push_back(std::move(hand.at(i)->getCard()));
 
-    hand.at(i)->setCard(decks.at(0).back());
-    decks.at(0).pop_back();
+    hand.at(i)->setCard(decks->at(0).back());
+    decks->at(0).pop_back();
 
     std::string card = getFaceString(hand.at(i)->getCard().getFace());
     std::string suit = getSuitString(hand.at(i)->getCard().getSuit());

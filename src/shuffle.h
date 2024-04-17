@@ -2,13 +2,14 @@
 #define SHUFFLE_H
 
 #include "card.h"
+#include <QApplication>
+#include <QDebug>
 #include <QMutex>
 #include <QMutexLocker>
 #include <QRunnable>
 #include <QString>
 #include <QThread>
 #include <algorithm>
-#include <chrono>
 #include <random>
 #include <vector>
 
@@ -16,38 +17,41 @@ class Shuffle : public QObject
 {
   Q_OBJECT
   // keep a local copy of decks to not worry about reinserting drawn cards
-  std::vector<std::vector<Card>> decks;
-  std::random_device r;
-  std::mt19937 mt;
+  std::shared_ptr<std::vector<std::vector<Card>>> decks;
   QMutex mutex;
+  std::shared_ptr<std::mt19937> mt;
 
 public:
   void run()
   {
     QMutexLocker locker(&mutex);
     bool end = false;
+    qDebug() << "Beginning a new shuffle run\n";
     while (!end)
     {
       if (QThread::currentThread()->isInterruptionRequested())
         end = true;
 
-      for (int i = 0; i < decks.size(); ++i)
-        std::shuffle(decks.at(i).begin(), decks.at(i).end(), mt);
+      for (int i = 0; i < decks->size(); ++i)
+      {
+        // if (decks->at(i).size() != 52)
+        //   throw std::length_error("deck size is not 52");
+        std::shuffle(decks->at(i).begin(), decks->at(i).end(), *mt);
+      }
     }
-    emit finishedShuffling(decks);
+    emit finishedShuffling();
   }
 
-  Shuffle(std::vector<std::vector<Card>> decks)
-      : decks(decks),
-        mt(r() ^
-           std::chrono::high_resolution_clock::now().time_since_epoch().count())
+  Shuffle(std::shared_ptr<std::vector<std::vector<Card>>> decks,
+          std::shared_ptr<std::mt19937> mt)
+      : decks(decks), mt(mt)
   {
   }
 public slots:
   void deleteLater() {}
 signals:
   void error(QString error);
-  void finishedShuffling(std::vector<std::vector<Card>> decks);
+  void finishedShuffling();
 };
 
 #endif // SHUFFLE_H
