@@ -10,6 +10,8 @@
 #include <QPushButton>
 #include <QString>
 #include <QThread>
+#include <memory>
+#include <random>
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -37,6 +39,8 @@ class VideoPoker : public QMainWindow
   Q_OBJECT
   Ui::VideoPoker *ui;
 
+  std::shared_ptr<std::mt19937> mt;
+
   // the vertical layout that keeps everything
   QVBoxLayout *mainLayout;
 
@@ -48,10 +52,10 @@ class VideoPoker : public QMainWindow
   std::array<DisplayCard *, 5> hand;
 
   // put cards back in deck after draw
-  std::vector<Card> discardedCards;
+  std::vector<Card> discards;
 
   // multiple decks to account for ultimate x
-  std::vector<std::vector<Card>> decks;
+  std::shared_ptr<std::vector<std::vector<Card>>> decks;
 
   QThread *shuffler;
 
@@ -79,7 +83,7 @@ public:
 
 public slots:
   void dealButtonClicked();
-  void finishedShuffling(std::vector<std::vector<Card>> decks);
+  void finishedShuffling();
   void shuffleError(QString error);
   void deal();
   void draw();
