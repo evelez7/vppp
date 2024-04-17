@@ -3,16 +3,12 @@
 #include "card.h"
 #include "displayCard.h"
 #include "shuffle.h"
+#include <QBoxLayout>
 #include <QDebug>
-#include <QLabel>
 #include <QSvgWidget>
 #include <algorithm>
 #include <array>
-#include <map>
-#include <qboxlayout.h>
 #include <qnamespace.h>
-#include <qpushbutton.h>
-#include <qsvgwidget.h>
 #include <utility>
 
 namespace
@@ -79,6 +75,21 @@ std::string getFaceString(Face face)
     return std::to_string(std::to_underlying(face));
   }
 }
+
+std::map<Hand, unsigned> createPaytable()
+{
+  std::map<Hand, unsigned> paytable;
+  paytable.insert({Hand::Pair, 1});
+  paytable.insert({Hand::TwoPair, 2});
+  paytable.insert({Hand::ThreeOfAKind, 3});
+  paytable.insert({Hand::Straight, 4});
+  paytable.insert({Hand::Flush, 6});
+  paytable.insert({Hand::FullHouse, 9});
+  paytable.insert({Hand::FourOfAKind, 25});
+  paytable.insert({Hand::StraightFlush, 90});
+  paytable.insert({Hand::RoyalFlush, 800});
+  return paytable;
+}
 } // namespace
 
 VideoPoker::VideoPoker(QWidget *parent)
@@ -86,7 +97,8 @@ VideoPoker::VideoPoker(QWidget *parent)
       gameType(Games::JACKS_OR_BETTER), shuffler(new QThread()),
       handLabel(new QLabel()),
       mt(std::make_shared<std::mt19937>(std::random_device{}())),
-      decks(std::make_shared<std::vector<std::vector<Card>>>())
+      decks(std::make_shared<std::vector<std::vector<Card>>>()),
+      paytable(createPaytable()), bet(0.25), balance(100)
 {
   //  allow for passing back from the shuffling thread
   qRegisterMetaType<std::vector<std::vector<Card>>>(
@@ -139,6 +151,15 @@ void VideoPoker::dealButtonClicked()
   playButton->setDisabled(true);
   if (playButton->text() == QString("Deal"))
   {
+    // TODO: adjust bet, such as max bet
+    // TODO: add GUI elements for the paytable, bet, adjust balance
+    // TODO: abstract the game so that it can also play joker poker
+    // deuces wild is just an adjustment to the paytable/check hand
+    if (balance < bet)
+    {
+      playButton->setEnabled(true);
+      return;
+    }
     toggleHand(false);
     clearKeepLabels();
     shuffler->requestInterruption();
@@ -195,7 +216,10 @@ void VideoPoker::deal()
 void VideoPoker::draw()
 {
   pullCards();
-  addHandLabel(checkHand());
+  Hand hand = checkHand();
+  addHandLabel(hand);
+  if (hand != Hand::HighCard)
+    balance += bet + bet * paytable.at(hand);
 }
 
 void VideoPoker::clearKeepLabels()
@@ -256,6 +280,8 @@ Hand VideoPoker::checkHand()
   Card lowCard(Face::Ace), highCard(Face::Two);
   std::vector<Card> handCards;
   handCards.reserve(5);
+  // keep track of the face that makes a pair, could be the winning pair or not
+  Face pairFace;
   for (DisplayCard *displayCard : hand)
   {
     auto currentCard = displayCard->getCard();
@@ -273,7 +299,10 @@ Hand VideoPoker::checkHand()
     std::string qualifiedCard(getFaceString(currentCard.getFace()));
     try
     {
-      count.at(qualifiedCard)++;
+      auto &existingCard = count.at(qualifiedCard);
+      existingCard++;
+      if (existingCard == 2)
+        pairFace = currentCard.getFace();
     }
     catch (std::out_of_range &e)
     {
@@ -335,7 +364,13 @@ Hand VideoPoker::checkHand()
   else if (twoPair)
     return Hand::TwoPair;
   else if (pair)
-    return Hand::Pair;
+  {
+    // if the pair is not the winning pair, make it a high card
+    if (std::to_underlying(pairFace) < std::to_underlying(Face::Jack))
+      return Hand::HighCard;
+    else
+      return Hand::Pair;
+  }
   return Hand::HighCard;
 }
 

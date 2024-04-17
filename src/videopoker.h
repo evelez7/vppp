@@ -10,6 +10,7 @@
 #include <QPushButton>
 #include <QString>
 #include <QThread>
+#include <map>
 #include <memory>
 #include <random>
 
@@ -40,6 +41,11 @@ class VideoPoker : public QMainWindow
   Ui::VideoPoker *ui;
 
   std::shared_ptr<std::mt19937> mt;
+
+  std::map<Hand, unsigned> paytable;
+
+  float balance;
+  float bet;
 
   // the vertical layout that keeps everything
   QVBoxLayout *mainLayout;
