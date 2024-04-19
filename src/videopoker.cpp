@@ -1,81 +1,9 @@
 #include "videopoker.h"
-#include "./ui_videopoker.h"
-#include "card.h"
-#include "displayCard.h"
-#include "shuffle.h"
-#include <QBoxLayout>
 #include <QDebug>
-#include <QSvgWidget>
-#include <algorithm>
-#include <array>
-#include <qnamespace.h>
-#include <utility>
+#include <QObject>
 
 namespace
 {
-// No jokers
-std::vector<Card> createStandardDeck()
-{
-  std::vector<Card> deck;
-  deck.reserve(52);
-  std::array<Suit, 4> suits = {Suit::Clubs, Suit::Diamonds, Suit::Hearts,
-                               Suit::Spades};
-  std::array<Face, 3> faces = {Face::Jack, Face::Queen, Face::King};
-
-  for (const auto suit : suits)
-  {                                        // all suits
-    for (unsigned char j = 2; j < 11; ++j) // numbered cards
-      deck.emplace_back(suit, std::nullopt, j);
-    for (unsigned char j = 0; j < faces.size(); ++j)
-      deck.emplace_back(suit, faces.at(j), 10);
-    deck.emplace_back(suit, Face::Ace, 11);
-  }
-
-  return deck;
-}
-
-std::string getSuitString(Suit suit)
-{
-  switch (suit)
-  {
-  case Suit::Clubs:
-    return "clubs";
-  case Suit::Diamonds:
-    return "diamonds";
-  case Suit::Hearts:
-    return "hearts";
-  case Suit::Spades:
-    return "spades";
-  case Suit::EMPTY:
-    return "";
-  }
-}
-
-std::string getFaceString(Face face)
-{
-  switch (face)
-  {
-  case Face::Ace:
-    return "ace";
-  case Face::King:
-    return "king";
-  case Face::Queen:
-    return "queen";
-  case Face::Jack:
-    return "jack";
-  case Face::Two:
-  case Face::Three:
-  case Face::Four:
-  case Face::Five:
-  case Face::Six:
-  case Face::Seven:
-  case Face::Eight:
-  case Face::Nine:
-  case Face::Ten:
-    return std::to_string(std::to_underlying(face));
-  }
-}
-
 std::map<Hand, unsigned> createPaytable()
 {
   std::map<Hand, unsigned> paytable;
@@ -92,58 +20,29 @@ std::map<Hand, unsigned> createPaytable()
 }
 } // namespace
 
-VideoPoker::VideoPoker(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::VideoPoker),
-      gameType(Games::JACKS_OR_BETTER), shuffler(new QThread()),
-      handLabel(new QLabel()),
-      mt(std::make_shared<std::mt19937>(std::random_device{}())),
-      decks(std::make_shared<std::vector<std::vector<Card>>>()),
-      paytable(createPaytable()), bet(0.25), balance(100)
+VideoPoker::VideoPoker(const VPPP *vppp) : vppp(vppp)
 {
-  //  allow for passing back from the shuffling thread
-  qRegisterMetaType<std::vector<std::vector<Card>>>(
-      "std::vector<std::vector<Card>>");
-
-  decks->push_back(createStandardDeck());
-  task = new Shuffle(decks, mt);
-  QObject::connect(task, &Shuffle::finishedShuffling, this,
-                   &VideoPoker::finishedShuffling);
-  QObject::connect(task, &Shuffle::error, this, &VideoPoker::shuffleError);
-  QObject::connect(shuffler, &QThread::started, task, &Shuffle::run);
-  QObject::connect(task, &Shuffle::finishedShuffling, shuffler, &QThread::quit);
-  task->moveToThread(shuffler);
-  shuffler->start();
-  ui->setupUi(this);
-
-  Q_INIT_RESOURCE(images);
-  mainLayout = new QVBoxLayout(this->centralWidget());
+  mainLayout = new QVBoxLayout(vppp->centralWidget());
   mainLayout->addWidget(handLabel);
   handBox = new QGridLayout();
   mainLayout->addLayout(handBox);
   for (int i = 0; i < 5; ++i)
   {
     auto *card = new DisplayCard();
-    connect(card, &DisplayCard::cardSelectedEnable, this,
-            &VideoPoker::cardSelectedEnable);
-    connect(card, &DisplayCard::cardSelectedDisable, this,
-            &VideoPoker::cardSelectedDisable);
+    QObject::connect(card, &DisplayCard::cardSelectedEnable, this,
+                     &VideoPoker::cardSelectedEnable);
+    QObject::connect(card, &DisplayCard::cardSelectedDisable, this,
+                     &VideoPoker::cardSelectedDisable);
     card->setMaximumSize(QSize(400, 400));
     card->load(QString(":/assets/back.svg"));
     handBox->addWidget(card, 1, i);
     hand.at(i) = card;
     card->setPos(1, i);
   }
-
   playButton = new QPushButton(QString("Deal"));
-  connect(playButton, &QAbstractButton::clicked, this,
-          &VideoPoker::dealButtonClicked);
+  QObject::connect(playButton, &QAbstractButton::clicked, this,
+                   &VideoPoker::dealButtonClicked);
   mainLayout->addWidget(playButton);
-}
-
-VideoPoker::~VideoPoker()
-{
-  delete ui;
-  delete shuffler;
 }
 
 void VideoPoker::dealButtonClicked()
@@ -151,85 +50,52 @@ void VideoPoker::dealButtonClicked()
   playButton->setDisabled(true);
   if (playButton->text() == QString("Deal"))
   {
-    // TODO: adjust bet, such as max bet
     // TODO: add GUI elements for the paytable, bet, adjust balance
     // TODO: abstract the game so that it can also play joker poker
     // deuces wild is just an adjustment to the paytable/check hand
-    if (balance < bet)
-    {
-      playButton->setEnabled(true);
-      return;
-    }
     toggleHand(false);
     clearKeepLabels();
-    shuffler->requestInterruption();
+    vppp->interruptShuffling();
     qDebug() << "Requested shuffle interruption after deal";
   }
   else if (playButton->text() == QString("Draw"))
   {
     toggleHand(true);
-    shuffler->requestInterruption();
+    vppp->interruptShuffling();
     qDebug() << "Requested shuffle interruption after draw";
   }
 }
 
-void VideoPoker::finishedShuffling()
+void VideoPoker::play()
 {
   if (playButton->text() == QString("Deal"))
   {
-    shuffler->quit();
     qDebug() << "Dealing cards";
-    deal();
-    shuffler->start();
+    auto pulled = vppp->pullCards(5);
+    // for (unsigned char i = 0; i < 5; ++i)
+    // TODO: move these card string functions to card.h as static?
+    // TODO: Set card should load these cards?
+    // hand.at(i)->load(QString(":/assets/" +
+    //                          getSuitString(pulled.at(i).getSuit()) +
+    //                          getFaceString(pulled.at(i).getFace()) +
+    //                          ".svg"));
+
+    vppp->startShuffling();
     playButton->setText(QString("Draw"));
     playButton->setEnabled(true);
   }
   else if (playButton->text() == QString("Draw"))
   {
-    shuffler->quit();
     qDebug() << "Drawing cards";
-    draw();
-    for (unsigned char i = 0; i < discards.size(); ++i)
-      decks->at(0).push_back(std::move(discards.at(i)));
-    discards.clear();
-    for (unsigned char i = 0; i < hand.size(); ++i)
+    for (auto *card : hand)
     {
-      decks->at(0).push_back(std::move(hand.at(i)->getCard()));
-      if (hand.at(i)->isSelected())
-        hand.at(i)->select();
+      if (!card->isSelected())
+        continue;
+      card->setCard(vppp->pullCard());
     }
-
-    shuffler->start();
+    vppp->startShuffling();
     playButton->setText(QString("Deal"));
     playButton->setEnabled(true);
-  }
-}
-
-void VideoPoker::deal()
-{
-  for (unsigned char i = 0; i < hand.size(); ++i)
-    hand.at(i)->load(QString(":/assets/back.svg"));
-  pullCards();
-  addHandLabel(checkHand());
-}
-
-void VideoPoker::draw()
-{
-  pullCards();
-  Hand hand = checkHand();
-  addHandLabel(hand);
-  if (hand != Hand::HighCard)
-    balance += bet + bet * paytable.at(hand);
-}
-
-void VideoPoker::clearKeepLabels()
-{
-  for (unsigned char i = 0; i < 5; ++i)
-  {
-    auto *layoutItem = handBox->itemAtPosition(0, i);
-    if (layoutItem == nullptr)
-      continue;
-    delete layoutItem->widget();
   }
 }
 
@@ -243,26 +109,14 @@ void VideoPoker::cardSelectedDisable(int row, int col)
   delete handBox->itemAtPosition(row - 1, col)->widget();
 }
 
-void VideoPoker::shuffleError(QString error) { qDebug() << error; }
-
-void VideoPoker::pullCards()
+void VideoPoker::clearKeepLabels()
 {
   for (unsigned char i = 0; i < 5; ++i)
   {
-    // keep selected cards
-    if (hand.at(i)->isSelected())
+    auto *layoutItem = handBox->itemAtPosition(0, i);
+    if (layoutItem == nullptr)
       continue;
-    // this card has been dealt and is being discarded for the draw action
-    if (hand.at(i)->isInitialized())
-      discards.push_back(std::move(hand.at(i)->getCard()));
-
-    hand.at(i)->setCard(decks->at(0).back());
-    decks->at(0).pop_back();
-
-    std::string card = getFaceString(hand.at(i)->getCard().getFace());
-    std::string suit = getSuitString(hand.at(i)->getCard().getSuit());
-    QString path((":/assets/" + suit + "_" + card + ".svg").c_str());
-    static_cast<DisplayCard *>(handBox->itemAt(i)->widget())->load(path);
+    delete layoutItem->widget();
   }
 }
 
@@ -272,8 +126,49 @@ void VideoPoker::toggleHand(bool disable)
     hand.at(i)->setDisabled(disable);
 }
 
+void VideoPoker::addHandLabel(Hand hand)
+{
+  // TODO: Abstract this to get strings from the enum somewhere else
+  QString handString;
+  switch (hand)
+  {
+  case Hand::Pair:
+    handString = "Pair";
+    break;
+  case Hand::TwoPair:
+    handString = "Two Pair";
+    break;
+  case Hand::Flush:
+    handString = "Flush";
+    break;
+  case Hand::FullHouse:
+    handString = "Full House";
+    break;
+  case Hand::FourOfAKind:
+    handString = "Four of a Kind";
+    break;
+  case Hand::HighCard:
+    handString = "High Card";
+    break;
+  case Hand::Straight:
+    handString = "Straight";
+    break;
+  case Hand::StraightFlush:
+    handString = "Straight Flush";
+    break;
+  case Hand::ThreeOfAKind:
+    handString = "Three of a Kind";
+    break;
+  case Hand::RoyalFlush:
+    handString = "Royal Flush";
+    break;
+  }
+  handLabel->setText(handString);
+}
+
 Hand VideoPoker::checkHand()
 {
+  // TODO: Abstract this and put in VPPP to check hands for hold em etc
   unsigned char flush = 0;
   Suit currentSuit = Suit::EMPTY;
   std::map<std::string, unsigned char> count;
@@ -296,7 +191,7 @@ Hand VideoPoker::checkHand()
     else if (currentCard.getSuit() == currentSuit)
       flush++;
 
-    std::string qualifiedCard(getFaceString(currentCard.getFace()));
+    std::string qualifiedCard(Card::getFaceString(currentCard.getFace()));
     try
     {
       auto &existingCard = count.at(qualifiedCard);
@@ -372,43 +267,4 @@ Hand VideoPoker::checkHand()
       return Hand::Pair;
   }
   return Hand::HighCard;
-}
-
-void VideoPoker::addHandLabel(Hand hand)
-{
-  QString handString;
-  switch (hand)
-  {
-  case Hand::Pair:
-    handString = "Pair";
-    break;
-  case Hand::TwoPair:
-    handString = "Two Pair";
-    break;
-  case Hand::Flush:
-    handString = "Flush";
-    break;
-  case Hand::FullHouse:
-    handString = "Full House";
-    break;
-  case Hand::FourOfAKind:
-    handString = "Four of a Kind";
-    break;
-  case Hand::HighCard:
-    handString = "High Card";
-    break;
-  case Hand::Straight:
-    handString = "Straight";
-    break;
-  case Hand::StraightFlush:
-    handString = "Straight Flush";
-    break;
-  case Hand::ThreeOfAKind:
-    handString = "Three of a Kind";
-    break;
-  case Hand::RoyalFlush:
-    handString = "Royal Flush";
-    break;
-  }
-  handLabel->setText(handString);
 }

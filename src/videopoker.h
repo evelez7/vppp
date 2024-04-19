@@ -2,102 +2,59 @@
 #define VIDEOPOKER_H
 
 #include "displayCard.h"
-#include "games.h"
-#include "shuffle.h"
-#include <QBoxLayout>
+#include "game.h"
+#include "hand.h"
+#include "vppp.h"
 #include <QLabel>
-#include <QMainWindow>
 #include <QPushButton>
-#include <QString>
 #include <QThread>
+#include <QVBoxLayout>
 #include <map>
-#include <memory>
-#include <random>
 
-QT_BEGIN_NAMESPACE
-namespace Ui
-{
-class VideoPoker;
-}
-QT_END_NAMESPACE
-
-enum Hand : unsigned char
-{
-  HighCard = 0,
-  Pair = 1,
-  TwoPair = 2,
-  ThreeOfAKind = 3,
-  Straight = 4,
-  Flush = 5,
-  FullHouse = 6,
-  FourOfAKind = 7,
-  StraightFlush = 8,
-  RoyalFlush = 9
-};
-
-class VideoPoker : public QMainWindow
+class VideoPoker : public Game
 {
   Q_OBJECT
-  Ui::VideoPoker *ui;
-
-  std::shared_ptr<std::mt19937> mt;
-
-  std::map<Hand, unsigned> paytable;
-
-  float balance;
-  float bet;
-
+  const VPPP *vppp;
   // the vertical layout that keeps everything
   QVBoxLayout *mainLayout;
 
-  // the box that holds the hand and "Keep" text
+  // the grid that holds the hand and "Keep" text
   QGridLayout *handBox;
 
-  QLabel *handLabel;
-
-  std::array<DisplayCard *, 5> hand;
-
-  // put cards back in deck after draw
-  std::vector<Card> discards;
-
-  // multiple decks to account for ultimate x
-  std::shared_ptr<std::vector<std::vector<Card>>> decks;
-
-  QThread *shuffler;
-
-  Shuffle *task;
-
-  // the current game being played, i.e. JoB, bonus
-  Games gameType;
+  // the button that controls deal and draw phasses
   QPushButton *playButton;
 
-  void startShuffling();
-  void pullCards();
-  void clearKeepLabels();
+  // The SVG entities that also hold card info
+  std::array<DisplayCard *, 5> hand;
 
-  // enable or disable displayed cards in hand
-  void toggleHand(bool disable);
+  std::map<Hand, unsigned> paytable;
 
-  // check the hand for a win
+  // The label for the best hand present
+  QLabel *handLabel;
+
+  // Check for the existing winning hand
   Hand checkHand();
 
+  // Add the label of the best hand present
   void addHandLabel(Hand hand);
 
+  // Toggle the hand to be interactive or not
+  // Important to not allow selection while waiting for the draw
+  void toggleHand(bool disable);
+
+  void dealButtonClicked();
+
+  void clearKeepLabels();
+
+  virtual void play();
+
 public:
-  VideoPoker(QWidget *parent = nullptr);
+  VideoPoker(const VPPP *vppp);
   ~VideoPoker();
 
 public slots:
-  void dealButtonClicked();
-  void finishedShuffling();
-  void shuffleError(QString error);
-  void deal();
-  void draw();
   void cardSelectedEnable(int row, int col);
   void cardSelectedDisable(int row, int col);
-
-signals:
-  void readyToPlay();
-  void shufflingInterrupted(bool);
 };
-#endif // VIDEOPOKER_H
+
+#endif

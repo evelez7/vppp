@@ -1,6 +1,48 @@
 #include "card.h"
 #include <utility>
 
+std::string Card::getSuitString(Suit suit)
+{
+  switch (suit)
+  {
+  case Suit::Clubs:
+    return "clubs";
+  case Suit::Diamonds:
+    return "diamonds";
+  case Suit::Hearts:
+    return "hearts";
+  case Suit::Spades:
+    return "spades";
+  case Suit::EMPTY:
+    return "";
+  }
+}
+
+std::string Card::getFaceString(Face face)
+{
+  switch (face)
+  {
+  case Face::Ace:
+    return "ace";
+  case Face::King:
+    return "king";
+  case Face::Queen:
+    return "queen";
+  case Face::Jack:
+    return "jack";
+  case Face::Two:
+  case Face::Three:
+  case Face::Four:
+  case Face::Five:
+  case Face::Six:
+  case Face::Seven:
+  case Face::Eight:
+  case Face::Nine:
+  case Face::Ten:
+    return std::to_string(std::to_underlying(face));
+  }
+}
+
 Card::Card(Suit suit, std::optional<Face> optFace, unsigned char value)
     : suit(suit), value(value)
 {

@@ -36,6 +36,8 @@ class Card
   unsigned char value;
 
 public:
+  static std::string getFaceString(Face face);
+  static std::string getSuitString(Suit suit);
   Card() = default;
   Card(Suit suit, std::optional<Face> optFace, unsigned char value);
   Card(Face face);
