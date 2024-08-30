@@ -6,6 +6,9 @@ cd ./vppp\
 cmake .\
 make
 
+## Run Instruction
+./video-poker
+
 Needs Qt6
 
 # Acknowledgements
