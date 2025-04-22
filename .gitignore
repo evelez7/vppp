@@ -43,3 +43,6 @@ _deps
 *.app
 .cache/
 build/
+.qt/
+video-poker
+video-poker_autogen/

@@ -10,8 +10,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Svg)
+find_package(QT NAMES Qt6 Qt5 REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Svg SvgWidgets)
 
 set(PROJECT_SOURCES
         src/main.cpp
@@ -23,11 +23,13 @@ set(PROJECT_SOURCES
         src/videopoker.h
         src/shuffle.h
         src/games.h
+        src/displayCard.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(video-poker
         MANUAL_FINALIZATION
+        images.qrc
         ${PROJECT_SOURCES}
     )
 # Define target properties for Android with Qt 6 as:
@@ -45,12 +47,11 @@ else()
         add_executable(video-poker
             ${PROJECT_SOURCES}
             images.qrc
-            src/displayCard.h
         )
     endif()
 endif()
 
-target_link_libraries(video-poker PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Svg)
+target_link_libraries(video-poker PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Svg Qt${QT_VERSION_MAJOR}::SvgWidgets)
 
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
